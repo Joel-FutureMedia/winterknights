@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 30% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+    --primary: 220 50% 18%;
+    --primary-foreground: 42 50% 95%;
+    --secondary: 42 50% 55%;
+    --secondary-foreground: 220 50% 10%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 42 50% 55%;
+    --accent-foreground: 220 50% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 42 50% 55%;
+    --radius: 0.5rem;
+
+    --navy: 220 50% 18%;
+    --navy-light: 220 40% 25%;
+    --gold: 42 50% 55%;
+    --gold-light: 42 60% 70%;
+    --gold-dark: 42 45% 42%;
+
+    --sidebar-background: 220 50% 14%;
+    --sidebar-foreground: 220 10% 90%;
+    --sidebar-primary: 42 50% 55%;
+    --sidebar-primary-foreground: 220 50% 10%;
+    --sidebar-accent: 220 40% 22%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 40% 25%;
+    --sidebar-ring: 42 50% 55%;
+  }
+
+  .dark {
+    --background: 220 50% 8%;
+    --foreground: 220 10% 95%;
+    --card: 220 50% 12%;
+    --card-foreground: 220 10% 95%;
+    --popover: 220 50% 12%;
+    --popover-foreground: 220 10% 95%;
+    --primary: 42 50% 55%;
+    --primary-foreground: 220 50% 10%;
+    --secondary: 220 40% 22%;
+    --secondary-foreground: 220 10% 90%;
+    --muted: 220 40% 18%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 42 50% 55%;
+    --accent-foreground: 220 50% 10%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 30% 22%;
+    --input: 220 30% 22%;
+    --ring: 42 50% 55%;
+    --sidebar-background: 220 50% 8%;
+    --sidebar-foreground: 220 10% 90%;
+    --sidebar-primary: 42 50% 55%;
+    --sidebar-primary-foreground: 220 50% 10%;
+    --sidebar-accent: 220 40% 15%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 30% 18%;
+    --sidebar-ring: 42 50% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .gradient-navy {
+    background: linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--navy-light)) 100%);
+  }
+  .gradient-gold {
+    background: linear-gradient(135deg, hsl(var(--gold-dark)) 0%, hsl(var(--gold)) 50%, hsl(var(--gold-light)) 100%);
+  }
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .text-navy {
+    color: hsl(var(--navy));
+  }
+  .bg-navy {
+    background-color: hsl(var(--navy));
+  }
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+}
