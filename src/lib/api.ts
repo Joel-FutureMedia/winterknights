@@ -3,7 +3,7 @@ import type { ApiResponse, City, Corner, Company, Invoice, Payment, BookingReque
 
 // Default to your local backend port. Override with `VITE_API_URL` when needed.
 //const API_BASE = import.meta.env.VITE_API_URL || 'https://api.simplyfound.ggff.net/api';
-const API_BASE = import.meta.env.VITE_API_URL || 'https://winterknights.com.na/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.winterknights.com.na/api';
 //const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8983/api';
 
 
