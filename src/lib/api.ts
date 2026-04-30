@@ -2,7 +2,8 @@ import axios from 'axios';
 import type { ApiResponse, City, Corner, Company, Invoice, Payment, BookingRequest, LoginResponse, PaymentStatusResponse, TotalSpentResponse, CompanyPaidSummary, User } from '@/types';
 
 // Default to your local backend port. Override with `VITE_API_URL` when needed.
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.simplyfound.ggff.net/api';
+//const API_BASE = import.meta.env.VITE_API_URL || 'https://api.simplyfound.ggff.net/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://winterknights.com.na/api';
 //const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8983/api';
 
 
