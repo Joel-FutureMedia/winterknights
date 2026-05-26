@@ -9,6 +9,20 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://api.winterknights.com.
 
 const api = axios.create({ baseURL: API_BASE });
 
+/** Read `data` from a standard API envelope; returns null if missing or unsuccessful. */
+export function unwrapApiData<T>(res: { data?: ApiResponse<T> }): T | null {
+  const payload = res.data;
+  if (payload?.success && payload.data != null) return payload.data;
+  return null;
+}
+
+export function apiErrorMessage(err: unknown, fallback = 'Request failed'): string {
+  if (axios.isAxiosError(err)) {
+    return err.response?.data?.message || err.message || fallback;
+  }
+  return fallback;
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('wk_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -31,7 +45,16 @@ api.interceptors.response.use(
 
 // Auth
 export const authApi = {
-  register: (data: any) => api.post<ApiResponse>('/auth/register', data),
+  register: (data: {
+    email: string;
+    password: string;
+    name: string;
+    contactName: string;
+    phone?: string;
+    address?: string;
+    cityId: number;
+    cornerId?: number;
+  }) => api.post<ApiResponse>('/auth/register', data),
   login: (email: string, password: string) => api.post<ApiResponse<LoginResponse>>('/auth/login', { email, password }),
   verifyEmail: (token: string) => api.get<ApiResponse>(`/auth/verify-email?token=${token}`),
   forgotPassword: (email: string) => api.post<ApiResponse>('/auth/forgot-password', { email }),

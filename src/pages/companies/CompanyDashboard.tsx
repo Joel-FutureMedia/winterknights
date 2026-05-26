@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building2, MapPin, CreditCard, FileText, Upload, LogOut, User, Send, Eye } from 'lucide-react';
-import { citiesApi, cornersApi } from '@/lib/api';
+import { citiesApi, cornersApi, unwrapApiData, apiErrorMessage } from '@/lib/api';
 import type { City } from '@/types';
 import logo from '@/assets/logo.png';
 import {
@@ -117,16 +117,22 @@ const CompanyDashboard: React.FC = () => {
     const intervalId = window.setInterval(() => {
       fetchData();
     }, 8000);
-    citiesApi.getAll().then(r => { if (r.data?.data) setCities(r.data.data); }).catch(() => {});
+    citiesApi.getAll().then((r) => {
+      const data = unwrapApiData(r);
+      if (data) setCities(data);
+    }).catch(() => {});
     return () => window.clearInterval(intervalId);
   }, [user]);
 
   useEffect(() => {
     const effectiveCityId = profile?.city?.id ? String(profile.city.id) : brForm.cityId;
     if (effectiveCityId) {
-      cornersApi.getByCity(Number(effectiveCityId), 'AVAILABLE').then(r => {
-        if (r.data?.data) setBrCorners(r.data.data);
-      }).catch(() => setBrCorners([]));
+      cornersApi.getByCity(Number(effectiveCityId), 'AVAILABLE').then((r) => {
+        setBrCorners(unwrapApiData(r) || []);
+      }).catch((err) => {
+        setBrCorners([]);
+        toast.error(apiErrorMessage(err, 'Failed to load available corners'));
+      });
     } else {
       setBrCorners([]);
     }

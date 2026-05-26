@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { cornersApi, citiesApi } from '@/lib/api';
+import { cornersApi, citiesApi, unwrapApiData, apiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 import type { Corner, City } from '@/types';
 import { MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +16,12 @@ const AvailableCorners: React.FC = () => {
   useEffect(() => {
     Promise.all([cornersApi.getAll(), citiesApi.getAll()])
       .then(([cRes, ciRes]) => {
-        if (cRes.data?.data) setCorners(cRes.data.data);
-        if (ciRes.data?.data) setCities(ciRes.data.data);
+        const cornerList = unwrapApiData<Corner[]>(cRes);
+        const cityList = unwrapApiData<City[]>(ciRes);
+        if (cornerList) setCorners(cornerList);
+        if (cityList) setCities(cityList);
       })
-      .catch(() => {})
+      .catch((err) => toast.error(apiErrorMessage(err, 'Failed to load corners')))
       .finally(() => setLoading(false));
   }, []);
 

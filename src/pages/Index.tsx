@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import NamibiaMap from '@/components/public/NamibiaMap';
-import { cornersApi, citiesApi } from '@/lib/api';
+import { cornersApi, citiesApi, unwrapApiData } from '@/lib/api';
 import type { Corner, City } from '@/types';
 import { MapPin, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,14 @@ const Index: React.FC = () => {
   const [cities, setCities] = useState<City[]>([]);
 
   useEffect(() => {
-    cornersApi.getAll().then(r => { if (r.data?.data) setCorners(r.data.data); }).catch(() => {});
-    citiesApi.getAll().then(r => { if (r.data?.data) setCities(r.data.data); }).catch(() => {});
+    cornersApi.getAll().then((r) => {
+      const data = unwrapApiData<Corner[]>(r);
+      if (data) setCorners(data);
+    }).catch(() => {});
+    citiesApi.getAll().then((r) => {
+      const data = unwrapApiData<City[]>(r);
+      if (data) setCities(data);
+    }).catch(() => {});
   }, []);
 
   const availableCorners = corners.filter(c => c.status === 'AVAILABLE');

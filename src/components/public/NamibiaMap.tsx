@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { citiesApi } from '@/lib/api';
-import type { City } from '@/types';
+import { citiesApi, cornersApi, unwrapApiData } from '@/lib/api';
+import type { City, Corner } from '@/types';
 
 import naGeoJson from '../../../na.json';
 
@@ -37,6 +37,7 @@ const getPosition = (cityName: string) => {
 
 const NamibiaMap: React.FC = () => {
   const [cities, setCities] = useState<City[]>([]);
+  const [corners, setCorners] = useState<Corner[]>([]);
 
   // Convert GeoJSON polygon coordinates -> SVG path in a fixed 400x500 viewBox.
   // This keeps your existing city-dot percentage overlay aligned to the SVG.
@@ -137,9 +138,14 @@ const NamibiaMap: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    citiesApi.getAll().then(res => {
-      if (res.data?.data) setCities(res.data.data);
-    }).catch(() => {});
+    Promise.all([citiesApi.getAll(), cornersApi.getAll()])
+      .then(([cityRes, cornerRes]) => {
+        const cityList = unwrapApiData<City[]>(cityRes);
+        const cornerList = unwrapApiData<Corner[]>(cornerRes);
+        if (cityList) setCities(cityList);
+        if (cornerList) setCorners(cornerList);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -182,8 +188,14 @@ const NamibiaMap: React.FC = () => {
       {/* City dots overlay */}
       {cities.map((city, i) => {
         const pos = getPosition(city.name);
-        const cornerCount = city.corners?.length || 0;
-        const availCount = city.corners?.filter(c => c.status === 'AVAILABLE').length || 0;
+        const cityCorners = corners.filter(
+          (c) => (c.cityId ?? c.city?.id) === city.id
+        );
+        const cornerCount = cityCorners.length || city.corners?.length || 0;
+        const availCount =
+          cityCorners.filter((c) => c.status === 'AVAILABLE').length
+          || city.corners?.filter((c) => c.status === 'AVAILABLE').length
+          || 0;
         return (
           <motion.div
             key={city.id}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { adminApi, citiesApi, cornersApi } from '@/lib/api';
+import { adminApi, citiesApi, cornersApi, unwrapApiData, apiErrorMessage } from '@/lib/api';
 import type { Company, City, Corner, Invoice, Payment, BookingRequest, User } from '@/types';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -107,20 +107,27 @@ const AdminDashboard: React.FC = () => {
 
   const fetchAll = async () => {
     try {
-      const [comp, ci, co, inv, pay, br] = await Promise.all([
-        adminApi.getCompanies().catch(() => ({ data: { data: [] } })),
-        citiesApi.getAll().catch(() => ({ data: { data: [] } })),
-        cornersApi.getAll().catch(() => ({ data: { data: [] } })),
-        adminApi.getInvoices().catch(() => ({ data: { data: [] } })),
-        adminApi.getPayments().catch(() => ({ data: { data: [] } })),
-        adminApi.getBookingRequests().catch(() => ({ data: { data: [] } })),
+      const [compRes, ciRes, coRes, invRes, payRes, brRes] = await Promise.allSettled([
+        adminApi.getCompanies(),
+        citiesApi.getAll(),
+        cornersApi.getAll(),
+        adminApi.getInvoices(),
+        adminApi.getPayments(),
+        adminApi.getBookingRequests(),
       ]);
-      setCompanies((comp.data as any).data || []);
-      setCities((ci.data as any).data || []);
-      setCorners((co.data as any).data || []);
-      setInvoices((inv.data as any).data || []);
-      setPayments((pay.data as any).data || []);
-      setBookingRequests((br.data as any).data || []);
+      if (compRes.status === 'fulfilled') setCompanies(unwrapApiData(compRes.value) || []);
+      if (ciRes.status === 'fulfilled') setCities(unwrapApiData(ciRes.value) || []);
+      if (coRes.status === 'fulfilled') {
+        const cornerList = unwrapApiData(coRes.value);
+        setCorners(cornerList || []);
+        if (!cornerList) toast.error('Failed to load corners');
+      } else {
+        setCorners([]);
+        toast.error(apiErrorMessage(coRes.reason, 'Failed to load corners'));
+      }
+      if (invRes.status === 'fulfilled') setInvoices(unwrapApiData(invRes.value) || []);
+      if (payRes.status === 'fulfilled') setPayments(unwrapApiData(payRes.value) || []);
+      if (brRes.status === 'fulfilled') setBookingRequests(unwrapApiData(brRes.value) || []);
 
       if (isSuperAdmin) {
         try {
@@ -128,7 +135,9 @@ const AdminDashboard: React.FC = () => {
           setAdmins((aRes.data as any).data || []);
         } catch {}
       }
-    } catch {} finally { setLoading(false); }
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Failed to load dashboard data'));
+    } finally { setLoading(false); }
   };
 
   useEffect(() => {
