@@ -263,11 +263,14 @@ const AdminDashboard: React.FC = () => {
   };
 
   const deleteCorner = async (id: number) => {
+    if (!window.confirm('Delete this corner? Related booking links and pending invoices will be removed.')) return;
     try {
       await adminApi.deleteCorner(id);
       toast.success('Corner deleted');
       fetchAll();
-    } catch (err: any) { toast.error(err.response?.data?.message || 'Failed'); }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete corner');
+    }
   };
 
   const changeCornerStatus = async (id: number, status: 'AVAILABLE' | 'RESERVED' | 'BOOKED') => {
