@@ -48,7 +48,7 @@ const Index: React.FC = () => {
                 <span className="block text-gold">Change a Life.</span>
               </h1>
               <p className="mt-6 text-lg text-primary-foreground/70 max-w-md">
-                Secure a space where your business can raise funds and directly support communities in need.
+                Reserve your corner and join the teams helping those less fortunate. Become a Winter Knight.
               </p>
               <div className="mt-6 flex flex-wrap gap-4">
                 <Link

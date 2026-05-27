@@ -11,7 +11,7 @@ const Footer: React.FC = () => (
         <div>
           <img src={logo} alt="Winter Knights" className="h-20 w-auto object-contain mb-4 drop-shadow-[0_0_8px_hsl(var(--gold)/0.5)]" />
           <p className="text-sm opacity-70">
-            Namibia's trusted platform for booking fundraising corners that support communities in need.
+            Book a corner, brave the cold, and help Round Table Namibia carry warmth to those who need it most.
           </p>
         </div>
         <div>
