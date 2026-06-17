@@ -21,6 +21,7 @@ const CompanyRegister: React.FC = () => {
   const [form, setForm] = useState({
     email: '', password: '', name: '',
     contactName: '', phone: '', address: '', cityId: '', cornerId: 'none',
+    secondaryEmail: '', secondaryPassword: '', showSecondaryUser: false,
   });
 
   useEffect(() => {
@@ -54,6 +55,10 @@ const CompanyRegister: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.showSecondaryUser && form.secondaryEmail.trim() && !form.secondaryPassword.trim()) {
+      toast.error('Second user password is required when email is provided');
+      return;
+    }
     setLoading(true);
     try {
       const cornerId =
@@ -68,6 +73,12 @@ const CompanyRegister: React.FC = () => {
         address: form.address.trim() || undefined,
         cityId: Number(form.cityId),
         ...(cornerId != null && Number.isFinite(cornerId) ? { cornerId } : {}),
+        ...(form.showSecondaryUser && form.secondaryEmail.trim()
+          ? {
+              secondaryEmail: form.secondaryEmail.trim(),
+              secondaryPassword: form.secondaryPassword,
+            }
+          : {}),
       });
       toast.success('Registration successful! Please check your email to verify your account.');
       setRegistered(true);
@@ -119,6 +130,26 @@ const CompanyRegister: React.FC = () => {
               <div><Label>Contact Person *</Label><Input required value={form.contactName} onChange={(e) => update('contactName', e.target.value)} /></div>
               <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => update('phone', e.target.value)} /></div>
             </div>
+
+            <div className="pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setForm((f) => ({ ...f, showSecondaryUser: !f.showSecondaryUser }))}
+              >
+                {form.showSecondaryUser ? 'Remove second user' : '+ Add second user (optional)'}
+              </Button>
+            </div>
+
+            {form.showSecondaryUser && (
+              <div className="grid sm:grid-cols-2 gap-4 p-4 rounded-lg border bg-muted/30">
+                <div><Label>Second user email</Label><Input type="email" value={form.secondaryEmail} onChange={(e) => update('secondaryEmail', e.target.value)} /></div>
+                <div><Label>Second user password</Label><Input type="password" minLength={6} value={form.secondaryPassword} onChange={(e) => update('secondaryPassword', e.target.value)} /></div>
+                <p className="sm:col-span-2 text-xs text-muted-foreground">A second login for your company. Both users must verify their email.</p>
+              </div>
+            )}
+
             <div><Label>Address</Label><Input value={form.address} onChange={(e) => update('address', e.target.value)} /></div>
 
             <div>

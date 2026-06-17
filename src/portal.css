@@ -1,0 +1,172 @@
+/* Portal-only theme (admin + company dashboards). Scoped — does not affect the public website. */
+.portal-theme {
+  --background: 210 25% 98%;
+  --foreground: 222 35% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 35% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 35% 12%;
+  --primary: 222 35% 14%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 199 89% 48%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 215 14% 42%;
+  --accent: 199 89% 48%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 18% 88%;
+  --input: 214 18% 88%;
+  --ring: 199 89% 48%;
+  --radius: 0.75rem;
+
+  --navy: 222 35% 14%;
+  --navy-light: 222 28% 22%;
+  --gold: 199 89% 48%;
+  --gold-light: 199 89% 58%;
+  --gold-dark: 199 89% 40%;
+  --portal-glow: 199 89% 48%;
+
+  --sidebar-background: 222 35% 11%;
+  --sidebar-foreground: 210 20% 96%;
+  --sidebar-primary: 199 89% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 28% 18%;
+  --sidebar-accent-foreground: 210 20% 96%;
+  --sidebar-border: 222 22% 22%;
+  --sidebar-ring: 199 89% 48%;
+
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  @apply bg-background text-foreground antialiased min-h-svh;
+}
+
+.portal-theme h1,
+.portal-theme h2,
+.portal-theme h3,
+.portal-theme h4,
+.portal-theme h5,
+.portal-theme h6,
+.portal-theme .font-display {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 400;
+}
+
+.portal-theme.dark {
+  --background: 222 38% 7%;
+  --foreground: 210 25% 96%;
+  --card: 222 32% 11%;
+  --card-foreground: 210 25% 96%;
+  --popover: 222 32% 11%;
+  --popover-foreground: 210 25% 96%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 222 38% 8%;
+  --secondary: 222 28% 18%;
+  --secondary-foreground: 210 25% 96%;
+  --muted: 222 28% 16%;
+  --muted-foreground: 215 14% 62%;
+  --accent: 199 89% 48%;
+  --accent-foreground: 222 38% 8%;
+  --destructive: 0 62% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 22% 20%;
+  --input: 222 22% 20%;
+  --ring: 199 89% 48%;
+
+  --navy: 222 35% 11%;
+  --navy-light: 222 28% 16%;
+  --gold: 199 89% 52%;
+  --gold-light: 199 89% 62%;
+  --gold-dark: 199 89% 42%;
+
+  --sidebar-background: 222 38% 8%;
+  --sidebar-foreground: 210 25% 96%;
+  --sidebar-primary: 199 89% 48%;
+  --sidebar-primary-foreground: 222 38% 8%;
+  --sidebar-accent: 222 28% 14%;
+  --sidebar-accent-foreground: 210 25% 96%;
+  --sidebar-border: 222 22% 16%;
+  --sidebar-ring: 199 89% 48%;
+}
+
+.portal-theme .gradient-navy {
+  background: linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--navy-light)) 100%);
+}
+
+.portal-theme .gradient-gold {
+  background: linear-gradient(135deg, hsl(var(--gold-dark)) 0%, hsl(var(--gold)) 55%, hsl(var(--gold-light)) 100%);
+}
+
+.portal-theme .text-gold {
+  color: hsl(var(--gold));
+}
+
+.portal-theme .text-navy {
+  color: hsl(var(--navy));
+}
+
+.portal-theme .portal-canvas {
+  @apply bg-background;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--portal-glow) / 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, hsl(var(--portal-glow) / 0.06), transparent);
+}
+
+.portal-theme.dark .portal-canvas {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--portal-glow) / 0.18), transparent),
+    radial-gradient(ellipse 50% 35% at 0% 100%, hsl(var(--portal-glow) / 0.08), transparent);
+}
+
+.portal-theme .portal-header {
+  @apply border-b border-border/60 bg-card/75 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60;
+}
+
+.portal-theme .portal-card {
+  @apply rounded-2xl border border-border/60 bg-card/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-gold/20;
+}
+
+.portal-theme .portal-stat-card {
+  @apply rounded-2xl border border-border/60 bg-card/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-gold/20 overflow-hidden relative;
+}
+
+.portal-theme .portal-stat-card::before {
+  content: '';
+  @apply absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent;
+}
+
+.portal-theme .dashboard-shell {
+  @apply bg-background;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--portal-glow) / 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, hsl(var(--portal-glow) / 0.06), transparent);
+}
+
+.portal-theme.dark .dashboard-shell {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--portal-glow) / 0.18), transparent),
+    radial-gradient(ellipse 50% 35% at 0% 100%, hsl(var(--portal-glow) / 0.08), transparent);
+}
+
+.portal-theme .dashboard-stat-card {
+  @apply rounded-2xl border border-border/60 bg-card/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-gold/20 overflow-hidden relative;
+}
+
+.portal-theme .dashboard-stat-card::before {
+  content: '';
+  @apply absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent;
+}
+
+.portal-theme .dashboard-panel {
+  @apply rounded-2xl border border-border/60 bg-card/90 shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-gold/20;
+}
+
+.portal-theme .portal-action-card {
+  @apply rounded-2xl border border-border/60 bg-card/90 p-6 text-left shadow-sm backdrop-blur-sm transition-all duration-300;
+  @apply hover:shadow-lg hover:border-gold/35 hover:-translate-y-0.5;
+}
+
+.portal-theme .portal-action-card .action-icon {
+  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-md;
+}

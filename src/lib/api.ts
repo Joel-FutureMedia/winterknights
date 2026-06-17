@@ -3,8 +3,8 @@ import type { ApiResponse, City, Corner, Company, Invoice, Payment, BookingReque
 
 // Default to your local backend port. Override with `VITE_API_URL` when needed.
 //const API_BASE = import.meta.env.VITE_API_URL || 'https://api.simplyfound.ggff.net/api';
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.winterknights.com.na/api';
-//const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8983/api';
+//const API_BASE = import.meta.env.VITE_API_URL || 'https://api.winterknights.com.na/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8983/api';
 
 
 const api = axios.create({ baseURL: API_BASE });
@@ -54,6 +54,8 @@ export const authApi = {
     address?: string;
     cityId: number;
     cornerId?: number;
+    secondaryEmail?: string;
+    secondaryPassword?: string;
   }) => api.post<ApiResponse>('/auth/register', data),
   login: (email: string, password: string) => api.post<ApiResponse<LoginResponse>>('/auth/login', { email, password }),
   verifyEmail: (token: string) => api.get<ApiResponse>(`/auth/verify-email?token=${token}`),
@@ -121,8 +123,9 @@ export const adminApi = {
     address?: string;
     cityId: number;
     password: string;
-    /** When set, corner is reserved, invoice is generated, and invoice email is sent (same city as cityId). */
     cornerId?: number;
+    secondaryEmail?: string;
+    secondaryPassword?: string;
   }) => api.post<ApiResponse<Company>>('/admin/companies/manual', data),
   updateCompanyManual: (id: number, data: {
     name?: string;
@@ -132,6 +135,9 @@ export const adminApi = {
     address?: string;
     cityId?: number;
     password?: string;
+    cornerId?: number;
+    secondaryEmail?: string;
+    secondaryPassword?: string;
   }) => api.put<ApiResponse<Company>>(`/admin/companies/${id}`, data),
   approveCompany: (id: number, cornerId?: number) =>
     api.put<ApiResponse>(`/admin/companies/${id}/approve`, cornerId ? { cornerId } : {}),
@@ -183,6 +189,12 @@ export const adminApi = {
   updateCornerStatus: (id: number, status: 'AVAILABLE' | 'RESERVED' | 'BOOKED') =>
     api.put<ApiResponse<Corner>>(`/corners/${id}/status`, { status }),
   deleteCorner: (id: number) => api.delete<ApiResponse>(`/corners/${id}`),
+
+  // Bulk messaging
+  getMessagingStats: () =>
+    api.get<ApiResponse<{ emailRecipients: number }>>('/admin/messaging/stats'),
+  sendBulkEmail: (subject: string, message: string) =>
+    api.post<ApiResponse<{ recipientCount: number }>>('/admin/messaging/bulk-email', { subject, message }),
 };
 
 export default api;

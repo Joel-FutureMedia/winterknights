@@ -11,22 +11,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, MapPin, CreditCard, FileText, Upload, LogOut, User, Send, Eye } from 'lucide-react';
+import { Building2, MapPin, CreditCard, FileText, Upload, User, Send, Eye, ChevronRight, LayoutGrid } from 'lucide-react';
 import { citiesApi, cornersApi, unwrapApiData, apiErrorMessage } from '@/lib/api';
 import type { City } from '@/types';
 import logo from '@/assets/logo.png';
+import { PortalThemeProvider } from '@/contexts/PortalThemeContext';
+import { PortalPageHeader, PortalTopBar } from '@/components/portal/PortalChrome';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 
@@ -59,8 +60,8 @@ const CompanyDashboard: React.FC = () => {
   const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
   const [unassigning, setUnassigning] = useState(false);
 
-  type CompanyTab = 'profile' | 'corner' | 'payments' | 'booking';
-  const [activeTab, setActiveTab] = React.useState<CompanyTab>('profile');
+  type CompanyView = 'home' | 'profile' | 'payments' | 'booking';
+  const [activeView, setActiveView] = useState<CompanyView>('home');
 
   const fetchData = async () => {
     try {
@@ -251,7 +252,7 @@ const CompanyDashboard: React.FC = () => {
       cornerId: br.corner?.id ? String(br.corner.id) : '',
       message: br.message || '',
     });
-    setActiveTab('booking');
+    setActiveView('booking');
   };
 
   const handleUnassignSelf = async () => {
@@ -286,267 +287,255 @@ const CompanyDashboard: React.FC = () => {
     return <Badge variant="secondary" className={`border-0 ${colors[s] || ''}`}>{s}</Badge>;
   };
 
+  const goToView = (view: CompanyView) => {
+    if (view !== 'profile') setEditMode(false);
+    setActiveView(view);
+  };
+
+  const viewTitles: Record<CompanyView, string> = {
+    home: 'Company Dashboard',
+    profile: 'Company Profile',
+    payments: 'Payments & Invoices',
+    booking: 'Corner Booking',
+  };
+
+  const viewDescriptions: Record<CompanyView, string> = {
+    home: `Welcome back, ${profile?.name || 'Company'}. Choose an option below to get started.`,
+    profile: 'View and update your registered company information.',
+    payments: 'View your corner, invoices, upload proof of payment, and payment history.',
+    booking: 'Request a corner and track your booking applications.',
+  };
+
   return (
-    <SidebarProvider defaultOpen>
-      <div className="flex min-h-svh w-full">
-        <Sidebar side="left">
-          <SidebarContent className="px-2">
-            <SidebarHeader>
-              <div className="flex items-center gap-3 px-2">
-                {/* Preserve original logo aspect ratio */}
-                <img src={logo} alt="Winter Knights" className="h-24 w-auto object-contain" />
-              </div>
-            </SidebarHeader>
-            <SidebarSeparator className="my-2" />
-            <SidebarGroup>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    size="lg"
-                    isActive={activeTab === 'profile'}
-                    onClick={() => setActiveTab('profile')}
-                    type="button"
-                  >
-                    <User size={16} className="text-gold" />
-                    <span className="text-base font-semibold">Profile</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    size="lg"
-                    isActive={activeTab === 'corner'}
-                    onClick={() => setActiveTab('corner')}
-                    type="button"
-                  >
-                    <CreditCard size={16} className="text-gold" />
-                    <span className="text-base font-semibold">Payment and Invoices</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    size="lg"
-                    isActive={activeTab === 'payments'}
-                    onClick={() => setActiveTab('payments')}
-                    type="button"
-                  >
-                    <FileText size={16} className="text-gold" />
-                    <span className="text-base font-semibold">Payment History</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    size="lg"
-                    isActive={activeTab === 'booking'}
-                    onClick={() => setActiveTab('booking')}
-                    type="button"
-                  >
-                    <Send size={16} className="text-gold" />
-                    <span className="text-base font-semibold">Corner Bookings</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
+    <PortalThemeProvider>
+      <SidebarProvider defaultOpen>
+        <div className="flex min-h-svh w-full">
+          <Sidebar side="left">
+            <SidebarContent className="px-2">
+              <SidebarHeader className="pb-2">
+                <div className="flex flex-col items-center gap-1 px-2 py-3">
+                  <img src={logo} alt="Winter Knights" className="h-16 w-auto object-contain drop-shadow-sm" />
+                  <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/80">Company Portal</p>
+                </div>
+              </SidebarHeader>
+              <SidebarSeparator className="my-2" />
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-base">Navigation</SidebarGroupLabel>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={activeView === 'home'}
+                      onClick={() => goToView('home')}
+                      type="button"
+                    >
+                      <LayoutGrid size={16} className="text-gold" />
+                      <span className="text-base font-semibold">Dashboard</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={activeView === 'profile'}
+                      onClick={() => goToView('profile')}
+                      type="button"
+                    >
+                      <User size={16} className="text-gold" />
+                      <span className="text-base font-semibold">Profile</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={activeView === 'payments'}
+                      onClick={() => goToView('payments')}
+                      type="button"
+                    >
+                      <CreditCard size={16} className="text-gold" />
+                      <span className="text-base font-semibold">Payments & Invoices</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={activeView === 'booking'}
+                      onClick={() => goToView('booking')}
+                      type="button"
+                    >
+                      <Send size={16} className="text-gold" />
+                      <span className="text-base font-semibold">Corner Booking</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroup>
+            </SidebarContent>
+          </Sidebar>
 
-        <SidebarInset className="flex-1 bg-muted/30">
-          {/* Top bar */}
-          <header className="gradient-navy sticky top-0 z-50 shadow-lg">
-            <div className="container mx-auto flex items-center justify-between py-3 px-4">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="md:hidden" />
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-primary-foreground/70 text-sm hidden sm:inline">{profile?.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-primary-foreground hover:text-gold"
-                >
-                  <LogOut size={16} className="mr-1" /> Logout
-                </Button>
-              </div>
-            </div>
-          </header>
+          <SidebarInset className="flex-1 dashboard-shell min-w-0">
+          <PortalTopBar
+            badge="Company"
+            userLabel={profile?.name || user?.email}
+            onLogout={handleLogout}
+            showSidebarTrigger
+          />
 
-          <div className="container mx-auto px-4 py-8">
-            <h1 className="font-display text-3xl uppercase text-navy mb-6">Company Dashboard</h1>
+          <div className="container mx-auto px-4 py-6 lg:py-8 max-w-[1200px] flex-1">
+            <PortalPageHeader
+              title={viewTitles[activeView]}
+              description={viewDescriptions[activeView]}
+            />
 
-            {/* Quick Stats */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-              <Card><CardContent className="pt-6">
-                <div className="flex items-center gap-3"><Building2 className="text-gold" size={24} /><div>
-                  <p className="text-xs text-muted-foreground uppercase">Company ID</p>
-                  <p className="font-display text-lg text-navy">{profile?.companyId}</p>
-                </div></div>
-              </CardContent></Card>
-              <Card><CardContent className="pt-6">
-                <div className="flex items-center gap-3"><MapPin className="text-gold" size={24} /><div>
-                  <p className="text-xs text-muted-foreground uppercase">City</p>
-                  <p className="font-display text-lg text-navy">{companyCityName}</p>
-                </div></div>
-              </CardContent></Card>
-              <Card><CardContent className="pt-6">
-                <div className="flex items-center gap-3"><MapPin className="text-gold" size={24} /><div>
-                  <p className="text-xs text-muted-foreground uppercase">Corner</p>
-                  <p className="font-display text-lg text-navy">{corner?.name || 'None assigned'}</p>
-                  {corner ? (
-                    <div className="mt-2">{statusBadge(corner.status)}</div>
-                  ) : (
-                    <div className="mt-2 text-muted-foreground text-xs">—</div>
-                  )}
-                </div></div>
-              </CardContent></Card>
-              <Card><CardContent className="pt-6">
-                <div className="flex items-center gap-3"><CreditCard className="text-gold" size={24} /><div>
-                  <p className="text-xs text-muted-foreground uppercase">Payment</p>
-                  {statusBadge(profile?.paymentStatus || 'NOT_PAID')}
-                </div></div>
-              </CardContent></Card>
-              <Card><CardContent className="pt-6">
-                <div className="flex items-center gap-3"><FileText className="text-gold" size={24} /><div>
-                  <p className="text-xs text-muted-foreground uppercase">Invoice</p>
-                  {invoice ? statusBadge(invoice.status) : <span className="text-muted-foreground text-sm">None</span>}
-                </div></div>
-              </CardContent></Card>
-              <Card><CardContent className="pt-6">
-                <div className="flex items-center gap-3"><CreditCard className="text-gold" size={24} /><div>
-                  <p className="text-xs text-muted-foreground uppercase">Total Paid</p>
-                  <p className="font-display text-lg text-gold">
-                    NAD {Number(totalSpent?.totalSpent || 0).toLocaleString('en', { minimumFractionDigits: 2 })}
-                  </p>
-                </div></div>
-              </CardContent></Card>
-            </div>
-
-            <Tabs
-              value={activeTab}
-              onValueChange={(v) => setActiveTab(v as CompanyTab)}
-              className="space-y-6"
-            >
-              <TabsList className="gradient-navy md:hidden">
-                <TabsTrigger value="profile" className="text-primary-foreground data-[state=active]:text-gold data-[state=active]:bg-navy-light">Profile</TabsTrigger>
-                <TabsTrigger value="corner" className="text-primary-foreground data-[state=active]:text-gold data-[state=active]:bg-navy-light">Payment and Invoices</TabsTrigger>
-                <TabsTrigger value="payments" className="text-primary-foreground data-[state=active]:text-gold data-[state=active]:bg-navy-light">Payment History</TabsTrigger>
-                <TabsTrigger value="booking" className="text-primary-foreground data-[state=active]:text-gold data-[state=active]:bg-navy-light">Corner Bookings</TabsTrigger>
-              </TabsList>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-display text-xl text-navy">Company Profile</CardTitle>
-                <Button variant="outline" size="sm" onClick={() => setEditMode(!editMode)}>
-                  {editMode ? 'Cancel' : 'Edit'}
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {editMode ? (
-                  <>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div><Label>Company Name</Label><Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
-                      <div><Label>Contact Person</Label><Input value={editForm.contactName} onChange={e => setEditForm(f => ({ ...f, contactName: e.target.value }))} /></div>
-                      <div><Label>Phone</Label><Input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
-                      <div><Label>Address</Label><Input value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} /></div>
-                      <div>
-                        <Label>City</Label>
-                        <Select value={editForm.cityId} onValueChange={v => setEditForm(f => ({ ...f, cityId: v }))}>
-                          <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-                          <SelectContent>
-                            {cities.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+            {/* Quick Stats — always visible on home; compact on sub-pages */}
+            <div className={`grid sm:grid-cols-2 gap-4 mb-8 ${activeView === 'home' ? 'lg:grid-cols-3' : 'lg:grid-cols-6'}`}>
+              {(activeView === 'home' ? [
+                { icon: Building2, label: 'Company ID', value: profile?.companyId },
+                { icon: MapPin, label: 'City', value: companyCityName },
+                { icon: MapPin, label: 'Corner', value: corner?.name || 'None assigned', badge: corner?.status },
+              ] : [
+                { icon: Building2, label: 'Company ID', value: profile?.companyId },
+                { icon: MapPin, label: 'City', value: companyCityName },
+                { icon: MapPin, label: 'Corner', value: corner?.name || 'None', badge: corner?.status },
+                { icon: CreditCard, label: 'Payment', badge: profile?.paymentStatus || 'NOT_PAID' },
+                { icon: FileText, label: 'Invoice', badge: invoice?.status || 'NONE' },
+                { icon: CreditCard, label: 'Total Paid', value: `NAD ${Number(totalSpent?.totalSpent || 0).toLocaleString('en', { minimumFractionDigits: 2 })}`, gold: true },
+              ]).map((stat, i) => (
+                <Card key={i} className="dashboard-stat-card">
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-center gap-3">
+                      <stat.icon className="text-gold shrink-0" size={22} />
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+                        {'value' in stat && stat.value && (
+                          <p className={`font-display text-base font-semibold truncate ${'gold' in stat && stat.gold ? 'text-gold' : 'text-foreground'}`}>
+                            {stat.value}
+                          </p>
+                        )}
+                        {'badge' in stat && stat.badge && stat.badge !== 'NONE' && (
+                          <div className="mt-1">{statusBadge(stat.badge)}</div>
+                        )}
+                        {'badge' in stat && stat.badge === 'NONE' && !stat.value && (
+                          <span className="text-sm text-muted-foreground">None</span>
+                        )}
                       </div>
                     </div>
-                    <Button onClick={handleUpdateProfile} className="gradient-gold text-white">Save Changes</Button>
-                  </>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
-                      <div className="rounded-lg border bg-muted/20 p-4"><span className="text-muted-foreground">Company Name</span><p className="font-semibold text-base mt-1">{profile?.name}</p></div>
-                      <div className="rounded-lg border bg-muted/20 p-4"><span className="text-muted-foreground">Email</span><p className="font-semibold text-base mt-1 break-all">{profile?.email}</p></div>
-                      <div className="rounded-lg border bg-muted/20 p-4"><span className="text-muted-foreground">Contact Person</span><p className="font-semibold text-base mt-1">{profile?.contactName}</p></div>
-                      <div className="rounded-lg border bg-muted/20 p-4"><span className="text-muted-foreground">Phone</span><p className="font-semibold text-base mt-1">{profile?.phone || '—'}</p></div>
-                      <div className="rounded-lg border bg-muted/20 p-4"><span className="text-muted-foreground">City</span><p className="font-semibold text-base mt-1">{companyCityName}</p></div>
-                      <div className="rounded-lg border bg-muted/20 p-4"><span className="text-muted-foreground">Company ID</span><p className="font-semibold text-base mt-1">{profile?.companyId}</p></div>
-                      <div className="rounded-lg border bg-muted/20 p-4 sm:col-span-2 lg:col-span-3"><span className="text-muted-foreground">Address</span><p className="font-semibold text-base mt-1">{profile?.address || '—'}</p></div>
-                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-lg border bg-card p-4">
-                        <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Payment Status</div>
-                        <div>{statusBadge(profile?.paymentStatus || 'NOT_PAID')}</div>
-                      </div>
-                      <div className="rounded-lg border bg-card p-4 text-right">
-                        <div className="text-muted-foreground text-xs uppercase tracking-wider mb-2">Corner Status</div>
-                        <div className="font-medium">
-                          {corner ? (
-                            <span>{corner.name} ({corner.status})</span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+            {/* Home — action buttons */}
+            {activeView === 'home' && (
+              <div className="grid md:grid-cols-3 gap-5">
+                <button type="button" onClick={() => goToView('profile')} className="portal-action-card group">
+                  <div className="flex items-start gap-4">
+                    <div className="action-icon gradient-gold">
+                      <User size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display text-lg font-semibold text-foreground">Company Profile</h3>
+                      <p className="text-sm text-muted-foreground mt-1">View and update your company details</p>
+                    </div>
+                    <ChevronRight className="text-muted-foreground group-hover:text-gold transition-colors shrink-0 mt-1" size={20} />
+                  </div>
+                </button>
+
+                <button type="button" onClick={() => goToView('payments')} className="portal-action-card group">
+                  <div className="flex items-start gap-4">
+                    <div className="action-icon gradient-navy">
+                      <CreditCard size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display text-lg font-semibold text-foreground">Payments & Invoices</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Corner fees, invoices, proof of payment & history
+                      </p>
+                      {invoice?.status === 'PENDING' && (
+                        <Badge className="mt-2 border-0 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200">
+                          Action required
+                        </Badge>
+                      )}
+                    </div>
+                    <ChevronRight className="text-muted-foreground group-hover:text-gold transition-colors shrink-0 mt-1" size={20} />
+                  </div>
+                </button>
+
+                <button type="button" onClick={() => goToView('booking')} className="portal-action-card group">
+                  <div className="flex items-start gap-4">
+                    <div className="action-icon gradient-gold">
+                      <LayoutGrid size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display text-lg font-semibold text-foreground">Corner Booking</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Request a corner and track applications</p>
+                      {bookingRequests.some((b) => b.status === 'PENDING' || b.status === 'RESERVED') && (
+                        <Badge className="mt-2 border-0 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+                          Active request
+                        </Badge>
+                      )}
+                    </div>
+                    <ChevronRight className="text-muted-foreground group-hover:text-gold transition-colors shrink-0 mt-1" size={20} />
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {/* Profile view */}
+            {activeView === 'profile' && (
+              <Card className="dashboard-panel">
+                <CardHeader>
+                  <CardTitle className="font-display text-xl text-foreground">Company Profile</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {editMode ? (
+                    <>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div><Label>Company Name</Label><Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
+                        <div><Label>Contact Person</Label><Input value={editForm.contactName} onChange={e => setEditForm(f => ({ ...f, contactName: e.target.value }))} /></div>
+                        <div><Label>Phone</Label><Input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                        <div><Label>Address</Label><Input value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} /></div>
+                        <div className="sm:col-span-2">
+                          <Label>City</Label>
+                          <Select value={editForm.cityId} onValueChange={v => setEditForm(f => ({ ...f, cityId: v }))}>
+                            <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+                            <SelectContent>
+                              {cities.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" onClick={() => setEditMode(false)}>Cancel</Button>
+                        <Button onClick={handleUpdateProfile} className="gradient-gold text-white rounded-full">Save Changes</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                        <div className="rounded-xl border bg-muted/20 p-4"><span className="text-muted-foreground text-xs uppercase">Company Name</span><p className="font-semibold mt-1">{profile?.name}</p></div>
+                        <div className="rounded-xl border bg-muted/20 p-4"><span className="text-muted-foreground text-xs uppercase">Email</span><p className="font-semibold mt-1 break-all">{profile?.email}</p></div>
+                        <div className="rounded-xl border bg-muted/20 p-4"><span className="text-muted-foreground text-xs uppercase">Contact Person</span><p className="font-semibold mt-1">{profile?.contactName}</p></div>
+                        <div className="rounded-xl border bg-muted/20 p-4"><span className="text-muted-foreground text-xs uppercase">Phone</span><p className="font-semibold mt-1">{profile?.phone || '—'}</p></div>
+                        <div className="rounded-xl border bg-muted/20 p-4"><span className="text-muted-foreground text-xs uppercase">City</span><p className="font-semibold mt-1">{companyCityName}</p></div>
+                        <div className="rounded-xl border bg-muted/20 p-4"><span className="text-muted-foreground text-xs uppercase">Company ID</span><p className="font-semibold mt-1 font-mono">{profile?.companyId}</p></div>
+                        <div className="rounded-xl border bg-muted/20 p-4 sm:col-span-2"><span className="text-muted-foreground text-xs uppercase">Address</span><p className="font-semibold mt-1">{profile?.address || '—'}</p></div>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button onClick={() => setEditMode(true)} className="gradient-gold text-white rounded-full">
+                          Edit Profile
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-          <TabsContent value="payments">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-display text-xl text-navy">Payment History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-lg border bg-muted/20 p-4">
-                  <p className="text-xs text-muted-foreground uppercase">Total Amount Paid</p>
-                  <p className="font-display text-2xl text-gold">
-                    NAD {Number(totalSpent?.totalSpent || 0).toLocaleString('en', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-                {paymentsHistory.length === 0 ? (
-                  <p className="text-muted-foreground">No payment uploads yet.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="text-left p-3">Invoice #</th>
-                          <th className="text-left p-3">Amount</th>
-                          <th className="text-left p-3">File</th>
-                          <th className="text-left p-3">Status</th>
-                          <th className="text-left p-3">Uploaded</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paymentsHistory.map((p) => (
-                          <tr key={p.id} className="border-b">
-                            <td className="p-3 font-mono text-xs">{p.invoice?.invoiceNumber || '—'}</td>
-                            <td className="p-3 font-display text-gold">
-                              NAD {Number(p.invoice?.amount || 0).toLocaleString('en', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="p-3 text-xs">{p.originalFileName || '—'}</td>
-                            <td className="p-3">{statusBadge(p.status)}</td>
-                            <td className="p-3">{p.uploadedAt ? new Date(p.uploadedAt).toLocaleDateString() : '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Payment and Invoices Tab */}
-          <TabsContent value="corner">
+            {/* Payments & Invoices view */}
+            {activeView === 'payments' && (
             <div className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader><CardTitle className="font-display text-xl text-navy">Assigned Corner</CardTitle></CardHeader>
+              <Card className="dashboard-panel">
+                <CardHeader><CardTitle className="font-display text-xl text-foreground">Assigned Corner</CardTitle></CardHeader>
                 <CardContent>
                   {corner ? (
                     <div className="space-y-3 text-sm">
@@ -571,8 +560,8 @@ const CompanyDashboard: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader><CardTitle className="font-display text-xl text-navy">Current Invoice</CardTitle></CardHeader>
+              <Card className="dashboard-panel">
+                <CardHeader><CardTitle className="font-display text-xl text-foreground">Current Invoice</CardTitle></CardHeader>
                 <CardContent>
                   {invoice ? (
                     <div className="space-y-4 text-sm">
@@ -627,7 +616,7 @@ const CompanyDashboard: React.FC = () => {
                       {/* Upload Proof of Payment */}
                       {corner?.status === 'RESERVED' && invoice.status === 'PENDING' && (
                         <div className="border rounded-lg p-4 space-y-3">
-                          <h3 className="font-display text-lg text-navy">Upload Proof of Payment</h3>
+                          <h3 className="font-display text-lg text-foreground">Upload Proof of Payment</h3>
                           <p className="text-sm text-muted-foreground">
                             Accepted: PDF, JPG, PNG (max 10MB)
                           </p>
@@ -657,8 +646,8 @@ const CompanyDashboard: React.FC = () => {
                 </CardContent>
               </Card>
               </div>
-            <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Invoice History for your bookings</CardTitle></CardHeader>
+            <Card className="dashboard-panel">
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Invoice History for your bookings</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -727,16 +716,60 @@ const CompanyDashboard: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-            </div>
-          </TabsContent>
 
-          {/* Corner Bookings Tab */}
-          <TabsContent value="booking">
+            <Card className="dashboard-panel mt-6">
+              <CardHeader>
+                <CardTitle className="font-display text-xl text-foreground">Payment History</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-xl border bg-muted/20 p-4">
+                  <p className="text-xs text-muted-foreground uppercase">Total Amount Paid</p>
+                  <p className="font-display text-2xl text-gold">
+                    NAD {Number(totalSpent?.totalSpent || 0).toLocaleString('en', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                {paymentsHistory.length === 0 ? (
+                  <p className="text-muted-foreground">No payment uploads yet.</p>
+                ) : (
+                  <div className="overflow-x-auto portal-table-wrap">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left p-3">Invoice #</th>
+                          <th className="text-left p-3">Amount</th>
+                          <th className="text-left p-3">File</th>
+                          <th className="text-left p-3">Status</th>
+                          <th className="text-left p-3">Uploaded</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentsHistory.map((p) => (
+                          <tr key={p.id} className="border-b">
+                            <td className="p-3 font-mono text-xs">{p.invoice?.invoiceNumber || '—'}</td>
+                            <td className="p-3 font-display text-gold">
+                              NAD {Number(p.invoice?.amount || 0).toLocaleString('en', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-3 text-xs">{p.originalFileName || '—'}</td>
+                            <td className="p-3">{statusBadge(p.status)}</td>
+                            <td className="p-3">{p.uploadedAt ? new Date(p.uploadedAt).toLocaleDateString() : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            </div>
+            )}
+
+            {/* Corner Booking view */}
+            {activeView === 'booking' && (
             <div className="space-y-6">
               {(!corner || editingRequestId !== null) && (
-                <Card>
+                <Card className="dashboard-panel">
                   <CardHeader className="border-b bg-gradient-to-r from-navy/5 via-background to-gold/10">
-                    <CardTitle className="font-display text-xl text-navy">Submit Corner Booking Request</CardTitle>
+                    <CardTitle className="font-display text-xl text-foreground">Submit Corner Booking Request</CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Complete the form below and our team will review your application shortly.
                     </p>
@@ -814,8 +847,8 @@ const CompanyDashboard: React.FC = () => {
                 </Card>
               )}
 
-              <Card>
-                <CardHeader><CardTitle className="font-display text-xl text-navy">Corner Booking History</CardTitle></CardHeader>
+              <Card className="dashboard-panel">
+                <CardHeader><CardTitle className="font-display text-xl text-foreground">Corner Booking History</CardTitle></CardHeader>
                 <CardContent>
                   {bookingRequests.length === 0 ? (
                     <p className="text-muted-foreground">No booking requests yet.</p>
@@ -852,12 +885,12 @@ const CompanyDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-            </Tabs>
+            )}
           </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </PortalThemeProvider>
   );
 };
 

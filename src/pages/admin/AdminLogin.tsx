@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
+import { setPortalThemePreference } from '@/contexts/PortalThemeContext';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const AdminLogin: React.FC = () => {
         return;
       }
       login(d.token, d.email, d.role, d.companyId);
+      setPortalThemePreference('dark');
       toast.success('Welcome, Admin!');
       navigate('/admin/dashboard');
     } catch (err: any) {

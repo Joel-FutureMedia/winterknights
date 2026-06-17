@@ -12,8 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building2, MapPin, Users, CreditCard, FileText, LogOut, Shield, Plus, Trash2, Check, X, Download, Eye } from 'lucide-react';
+import { Building2, MapPin, Users, CreditCard, FileText, Shield, Plus, Trash2, Check, X, Download, Eye, Pencil, Mail } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import { PortalThemeProvider } from '@/contexts/PortalThemeContext';
+import { PortalPageHeader, PortalTopBar } from '@/components/portal/PortalChrome';
 import {
   Sidebar,
   SidebarContent,
@@ -27,10 +29,9 @@ import {
   SidebarMenuBadge,
   SidebarProvider,
   SidebarSeparator,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
 
-type AdminTab = 'companies' | 'company-management' | 'cities' | 'corners' | 'payments' | 'invoices' | 'revenue' | 'bookings' | 'admins';
+type AdminTab = 'companies' | 'company-management' | 'cities' | 'corners' | 'payments' | 'invoices' | 'revenue' | 'bookings' | 'messaging' | 'admins';
 
 /** Axios blob responses lose a usable MIME when re-wrapped without `type`, so PDFs/images open as plain text. */
 function proofBlobMime(
@@ -73,19 +74,32 @@ const AdminDashboard: React.FC = () => {
     invoices: '',
     revenue: '',
     bookings: '',
+    messaging: '',
     admins: '',
   });
 
   // Dialogs (Admin "Add/Create")
   const [cityDialogOpen, setCityDialogOpen] = useState(false);
+  const [cityEditDialogOpen, setCityEditDialogOpen] = useState(false);
+  const [editingCity, setEditingCity] = useState<City | null>(null);
+  const [editCityName, setEditCityName] = useState('');
   const [cornerDialogOpen, setCornerDialogOpen] = useState(false);
+  const [cornerEditDialogOpen, setCornerEditDialogOpen] = useState(false);
+  const [editingCorner, setEditingCorner] = useState<Corner | null>(null);
+  const [editCornerForm, setEditCornerForm] = useState({ name: '', price: '' });
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
   const [creatingCity, setCreatingCity] = useState(false);
+  const [updatingCity, setUpdatingCity] = useState(false);
   const [creatingCorner, setCreatingCorner] = useState(false);
+  const [updatingCorner, setUpdatingCorner] = useState(false);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+
+  const [messagingStats, setMessagingStats] = useState({ emailRecipients: 0 });
+  const [bulkEmailForm, setBulkEmailForm] = useState({ subject: '', message: '' });
+  const [sendingBulkEmail, setSendingBulkEmail] = useState(false);
 
   // Forms
   const [newCity, setNewCity] = useState('');
@@ -100,6 +114,9 @@ const AdminDashboard: React.FC = () => {
     cityId: '',
     cornerId: '',
     password: '',
+    secondaryEmail: '',
+    secondaryPassword: '',
+    showSecondaryUser: false,
   };
   const [companyForm, setCompanyForm] = useState(emptyCompanyForm);
   const [assignCornerData, setAssignCornerData] = useState({ companyId: 0, cornerId: '' });
@@ -147,6 +164,16 @@ const AdminDashboard: React.FC = () => {
     }
     fetchAll();
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab !== 'messaging') return;
+    adminApi.getMessagingStats()
+      .then((res) => {
+        const data = unwrapApiData(res);
+        if (data) setMessagingStats(data);
+      })
+      .catch(() => {});
+  }, [activeTab]);
 
   const statusBadge = (s: string) => {
     const colors: Record<string, string> = {
@@ -240,6 +267,73 @@ const AdminDashboard: React.FC = () => {
       toast.success('City deleted');
       fetchAll();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Failed'); }
+  };
+
+  const openEditCityDialog = (city: City) => {
+    setEditingCity(city);
+    setEditCityName(city.name);
+    setCityEditDialogOpen(true);
+  };
+
+  const updateCity = async () => {
+    if (!editingCity || !editCityName.trim()) return;
+    setUpdatingCity(true);
+    try {
+      await adminApi.updateCity(editingCity.id, editCityName.trim());
+      toast.success('City updated');
+      setCityEditDialogOpen(false);
+      setEditingCity(null);
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setUpdatingCity(false);
+    }
+  };
+
+  const openEditCornerDialog = (corner: Corner) => {
+    setEditingCorner(corner);
+    setEditCornerForm({ name: corner.name, price: String(corner.price) });
+    setCornerEditDialogOpen(true);
+  };
+
+  const updateCorner = async () => {
+    if (!editingCorner) return;
+    const priceNum = editCornerForm.price === '' ? NaN : Number(editCornerForm.price);
+    if (!editCornerForm.name.trim() || !Number.isFinite(priceNum)) return;
+    setUpdatingCorner(true);
+    try {
+      await adminApi.updateCorner(editingCorner.id, {
+        name: editCornerForm.name.trim(),
+        price: priceNum,
+      });
+      toast.success('Corner updated. Pending invoices refreshed if applicable.');
+      setCornerEditDialogOpen(false);
+      setEditingCorner(null);
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setUpdatingCorner(false);
+    }
+  };
+
+  const sendBulkEmail = async () => {
+    if (!bulkEmailForm.subject.trim() || !bulkEmailForm.message.trim()) {
+      toast.error('Subject and message are required');
+      return;
+    }
+    setSendingBulkEmail(true);
+    try {
+      const res = await adminApi.sendBulkEmail(bulkEmailForm.subject.trim(), bulkEmailForm.message.trim());
+      const msg = (res.data as { message?: string })?.message;
+      toast.success(msg || 'Bulk email queued');
+      setBulkEmailForm({ subject: '', message: '' });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to queue bulk email');
+    } finally {
+      setSendingBulkEmail(false);
+    }
   };
 
   const createCorner = async () => {
@@ -431,8 +525,11 @@ const AdminDashboard: React.FC = () => {
       phone: company.phone || '',
       address: company.address || '',
       cityId: company.city?.id ? String(company.city.id) : '',
-      cornerId: '',
+      cornerId: company.corner?.id ? String(company.corner.id) : '',
       password: '',
+      secondaryEmail: company.secondaryUser?.email || '',
+      secondaryPassword: '',
+      showSecondaryUser: !!company.secondaryUser?.email,
     });
     setCompanyDialogOpen(true);
   };
@@ -452,6 +549,13 @@ const AdminDashboard: React.FC = () => {
       toast.error('Password is required when creating a company.');
       return;
     }
+    if (companyForm.showSecondaryUser && companyForm.secondaryEmail.trim()) {
+      const addingNewSecondary = !editingCompany?.secondaryUser?.email;
+      if (addingNewSecondary && !companyForm.secondaryPassword.trim()) {
+        toast.error('Second user password is required.');
+        return;
+      }
+    }
 
     const key = editingCompany ? `update-company-${editingCompany.id}` : 'create-company';
     if (actionBusy[key]) return;
@@ -465,18 +569,39 @@ const AdminDashboard: React.FC = () => {
         address: companyForm.address.trim(),
         cityId: Number(companyForm.cityId),
         ...(companyForm.password.trim() ? { password: companyForm.password } : {}),
+        ...(companyForm.showSecondaryUser && companyForm.secondaryEmail.trim()
+          ? {
+              secondaryEmail: companyForm.secondaryEmail.trim(),
+              ...(companyForm.secondaryPassword.trim() ? { secondaryPassword: companyForm.secondaryPassword } : {}),
+            }
+          : {}),
       };
 
       if (editingCompany) {
-        await adminApi.updateCompanyManual(editingCompany.id, payload);
-        toast.success('Company updated');
+        const cornerIdNum =
+          companyForm.cornerId && companyForm.cornerId !== 'none' ? Number(companyForm.cornerId) : undefined;
+        await adminApi.updateCompanyManual(editingCompany.id, {
+          ...payload,
+          ...(cornerIdNum != null && Number.isFinite(cornerIdNum) ? { cornerId: cornerIdNum } : {}),
+        });
+        toast.success('Company updated. Corner and invoice refreshed when changed.');
       } else {
+        if (companyForm.showSecondaryUser && companyForm.secondaryEmail.trim() && !companyForm.secondaryPassword.trim()) {
+          toast.error('Secondary user password is required.');
+          return;
+        }
         const cornerIdNum =
           companyForm.cornerId && companyForm.cornerId !== 'none' ? Number(companyForm.cornerId) : undefined;
         const res = await adminApi.createCompanyManual({
           ...payload,
           password: companyForm.password,
           ...(cornerIdNum != null && Number.isFinite(cornerIdNum) ? { cornerId: cornerIdNum } : {}),
+          ...(companyForm.showSecondaryUser && companyForm.secondaryEmail.trim()
+            ? {
+                secondaryEmail: companyForm.secondaryEmail.trim(),
+                secondaryPassword: companyForm.secondaryPassword,
+              }
+            : {}),
         });
         const msg = (res.data as { message?: string })?.message;
         toast.success(msg || 'Company created');
@@ -562,14 +687,15 @@ const AdminDashboard: React.FC = () => {
   );
 
   return (
+    <PortalThemeProvider>
     <SidebarProvider defaultOpen>
       <div className="flex min-h-svh w-full">
         <Sidebar side="left">
           <SidebarContent className="px-2">
-            <SidebarHeader>
-              <div className="flex items-center gap-3 px-2">
-                {/* Preserve original logo aspect ratio */}
-                <img src={logo} alt="WK" className="h-28 w-auto object-contain" />
+            <SidebarHeader className="pb-2">
+              <div className="flex flex-col items-center gap-1 px-2 py-3">
+                <img src={logo} alt="Winter Knights" className="h-16 w-auto object-contain drop-shadow-sm" />
+                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/80">Admin Portal</p>
               </div>
             </SidebarHeader>
             <SidebarSeparator className="my-2" />
@@ -660,6 +786,17 @@ const AdminDashboard: React.FC = () => {
                     <span className="text-base font-semibold">Bookings</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    size="lg"
+                    isActive={activeTab === 'messaging'}
+                    onClick={() => setActiveTab('messaging')}
+                    type="button"
+                  >
+                    <Mail size={16} className="text-gold" />
+                    <span className="text-base font-semibold">Email</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 {isSuperAdmin && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
@@ -678,50 +815,45 @@ const AdminDashboard: React.FC = () => {
           </SidebarContent>
         </Sidebar>
 
-        <SidebarInset className="flex-1 bg-muted/30">
-          <header className="gradient-navy sticky top-0 z-50 shadow-lg">
-            <div className="container mx-auto flex items-center justify-between py-3 px-4">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="md:hidden" />
-              </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="secondary" className="bg-gold/20 text-gold border-0">{isSuperAdmin ? 'Super Admin' : 'Admin'}</Badge>
-            <span className="text-primary-foreground/70 text-base hidden sm:inline">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-primary-foreground hover:text-gold">
-              <LogOut size={16} className="mr-1" /> Logout
-            </Button>
-          </div>
-            </div>
-          </header>
+        <SidebarInset className="flex-1 dashboard-shell min-w-0">
+          <PortalTopBar
+            badge={isSuperAdmin ? 'Super Admin' : 'Admin'}
+            userLabel={user?.email}
+            onLogout={handleLogout}
+            showSidebarTrigger
+          />
 
-          <div className="container mx-auto px-4 py-8">
-            <h1 className="font-display text-3xl uppercase text-navy mb-6">Admin Dashboard</h1>
+          <div className="container mx-auto px-4 py-6 lg:py-8 max-w-[1600px]">
+            <PortalPageHeader
+              title="Admin Dashboard"
+              description="Manage companies, corners, payments, and broadcast email to registered users."
+            />
 
         {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <Card><CardContent className="pt-6 flex items-center gap-3">
+          <Card className="dashboard-stat-card"><CardContent className="pt-6 flex items-center gap-3">
             <Building2 className="text-gold" size={24} />
-            <div><p className="text-xs text-muted-foreground uppercase">Companies</p><p className="font-display text-2xl text-navy">{companies.length}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase tracking-wide">Companies</p><p className="font-display text-2xl font-semibold text-foreground">{companies.length}</p></div>
           </CardContent></Card>
-          <Card><CardContent className="pt-6 flex items-center gap-3">
+          <Card className="dashboard-stat-card"><CardContent className="pt-6 flex items-center gap-3">
             <MapPin className="text-gold" size={24} />
-            <div><p className="text-xs text-muted-foreground uppercase">Cities</p><p className="font-display text-2xl text-navy">{cities.length}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Cities</p><p className="font-display text-2xl text-foreground">{cities.length}</p></div>
           </CardContent></Card>
-          <Card><CardContent className="pt-6 flex items-center gap-3">
+          <Card className="dashboard-stat-card"><CardContent className="pt-6 flex items-center gap-3">
             <Shield className="text-gold" size={24} />
-            <div><p className="text-xs text-muted-foreground uppercase">Corners</p><p className="font-display text-2xl text-navy">{corners.length}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Corners</p><p className="font-display text-2xl text-foreground">{corners.length}</p></div>
           </CardContent></Card>
-          <Card><CardContent className="pt-6 flex items-center gap-3">
+          <Card className="dashboard-stat-card"><CardContent className="pt-6 flex items-center gap-3">
             <CreditCard className="text-gold" size={24} />
-            <div><p className="text-xs text-muted-foreground uppercase">Pending Payments</p><p className="font-display text-2xl text-navy">{pendingPaymentsCount}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Pending Payments</p><p className="font-display text-2xl text-foreground">{pendingPaymentsCount}</p></div>
           </CardContent></Card>
-          <Card><CardContent className="pt-6 flex items-center gap-3">
+          <Card className="dashboard-stat-card"><CardContent className="pt-6 flex items-center gap-3">
             <FileText className="text-gold" size={24} />
-            <div><p className="text-xs text-muted-foreground uppercase">Pending Invoices</p><p className="font-display text-2xl text-navy">{pendingInvoicesCount}</p></div>
+            <div><p className="text-xs text-muted-foreground uppercase">Pending Invoices</p><p className="font-display text-2xl text-foreground">{pendingInvoicesCount}</p></div>
           </CardContent></Card>
         </div>
         <div className="mb-6">
-          <Card>
+          <Card className="dashboard-stat-card">
             <CardContent className="pt-6 flex items-center gap-3">
               <CreditCard className="text-gold" size={24} />
               <div>
@@ -736,17 +868,17 @@ const AdminDashboard: React.FC = () => {
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminTab)} className="space-y-6">
           <TabsList className="gradient-navy flex-wrap h-auto gap-1 p-1 md:hidden">
-            {['companies', 'company-management', 'cities', 'corners', 'payments', 'invoices', 'revenue', 'bookings', ...(isSuperAdmin ? ['admins'] : [])].map(t => (
+            {['companies', 'company-management', 'cities', 'corners', 'payments', 'invoices', 'revenue', 'bookings', 'messaging', ...(isSuperAdmin ? ['admins'] : [])].map(t => (
               <TabsTrigger key={t} value={t} className="text-primary-foreground data-[state=active]:text-gold data-[state=active]:bg-navy-light capitalize">
-                {t === 'revenue' ? 'Collected' : t}
+                {t === 'revenue' ? 'Collected' : t === 'messaging' ? 'Email' : t}
               </TabsTrigger>
             ))}
           </TabsList>
 
           <TabsContent value="company-management">
-            <Card>
+            <Card className="dashboard-panel">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="font-display text-xl text-navy">Manage Companies</CardTitle>
+                <CardTitle className="font-display text-xl text-foreground">Manage Companies</CardTitle>
                 <Button className="gradient-gold text-white" type="button" onClick={openCreateCompanyDialog}>
                   <Plus size={16} className="mr-1" /> Add Company
                 </Button>
@@ -796,7 +928,7 @@ const AdminDashboard: React.FC = () => {
           {/* Companies Tab */}
           <TabsContent value="companies">
             <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Companies</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Companies</CardTitle></CardHeader>
               <CardContent>
                 <div className="mb-3">
                   <Input
@@ -926,7 +1058,7 @@ const AdminDashboard: React.FC = () => {
           {/* Cities Tab */}
           <TabsContent value="cities">
             <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Cities</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Cities</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">Add a new city</p>
@@ -993,9 +1125,14 @@ const AdminDashboard: React.FC = () => {
                           <td className="p-3 font-medium">{c.name}</td>
                           <td className="p-3">{c.corners?.length || 0}</td>
                           <td className="p-3">
-                            <Button size="sm" variant="destructive" className="text-xs" onClick={() => deleteCity(c.id)}>
-                              <Trash2 size={12} className="mr-1" /> Delete
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" type="button" onClick={() => openEditCityDialog(c)}>
+                                <Pencil size={12} className="mr-1" /> Edit
+                              </Button>
+                              <Button size="sm" variant="destructive" className="text-xs" onClick={() => deleteCity(c.id)}>
+                                <Trash2 size={12} className="mr-1" /> Delete
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1009,7 +1146,7 @@ const AdminDashboard: React.FC = () => {
           {/* Corners Tab */}
           <TabsContent value="corners">
             <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Corners</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Corners</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">Add a new corner</p>
@@ -1112,6 +1249,9 @@ const AdminDashboard: React.FC = () => {
                           <td className="p-3">{c.companyName || c.company?.name || '—'}</td>
                           <td className="p-3">
                             <div className="flex gap-2 flex-wrap">
+                              <Button size="sm" variant="outline" className="text-xs" onClick={() => openEditCornerDialog(c)}>
+                                <Pencil size={12} className="mr-1" /> Edit
+                              </Button>
                               <Select value={c.status} onValueChange={(v) => changeCornerStatus(c.id, v as 'AVAILABLE' | 'RESERVED' | 'BOOKED')}>
                                 <SelectTrigger className="h-8 w-[140px]">
                                   <SelectValue />
@@ -1141,7 +1281,7 @@ const AdminDashboard: React.FC = () => {
           {/* Payments Tab */}
           <TabsContent value="payments">
             <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Payments</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Payments</CardTitle></CardHeader>
               <CardContent>
                 <Input
                   className="mb-3"
@@ -1207,7 +1347,7 @@ const AdminDashboard: React.FC = () => {
           {/* Invoices Tab */}
           <TabsContent value="invoices">
             <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Invoices</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Invoices</CardTitle></CardHeader>
               <CardContent>
                 <Input
                   className="mb-3"
@@ -1251,7 +1391,7 @@ const AdminDashboard: React.FC = () => {
           <TabsContent value="revenue">
             <Card>
               <CardHeader>
-                <CardTitle className="font-display text-xl text-navy">Amount Paid by Companies</CardTitle>
+                <CardTitle className="font-display text-xl text-foreground">Amount Paid by Companies</CardTitle>
               </CardHeader>
               <CardContent>
                 <Input
@@ -1291,7 +1431,7 @@ const AdminDashboard: React.FC = () => {
           {/* Booking Requests Tab */}
           <TabsContent value="bookings">
             <Card>
-              <CardHeader><CardTitle className="font-display text-xl text-navy">Booking Requests</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-xl text-foreground">Booking Requests</CardTitle></CardHeader>
               <CardContent>
                 <Input
                   className="mb-3"
@@ -1376,11 +1516,52 @@ const AdminDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
+          {/* Messaging Tab */}
+          <TabsContent value="messaging">
+            <Card className="dashboard-panel max-w-3xl">
+              <CardHeader>
+                <CardTitle className="font-display text-xl flex items-center gap-2">
+                  <Mail className="text-gold" size={20} /> Broadcast Email
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Send one announcement email to all registered users ({messagingStats.emailRecipients} recipients). Delivery runs in the background.
+                </p>
+                <div className="space-y-2">
+                  <Label>Subject</Label>
+                  <Input
+                    placeholder="e.g. Winter Knights 2026 Update"
+                    value={bulkEmailForm.subject}
+                    onChange={(e) => setBulkEmailForm((f) => ({ ...f, subject: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Message</Label>
+                  <textarea
+                    className="flex min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder="Write your message to all registered users..."
+                    value={bulkEmailForm.message}
+                    onChange={(e) => setBulkEmailForm((f) => ({ ...f, message: e.target.value }))}
+                  />
+                </div>
+                <Button
+                  className="gradient-gold text-white rounded-full px-6"
+                  type="button"
+                  onClick={sendBulkEmail}
+                  disabled={sendingBulkEmail}
+                >
+                  {sendingBulkEmail ? 'Queuing...' : 'Send to All Users'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Admins Tab (Super Admin only) */}
           {isSuperAdmin && (
             <TabsContent value="admins">
               <Card>
-                <CardHeader><CardTitle className="font-display text-xl text-navy">Admin Users</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-display text-xl text-foreground">Admin Users</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-end gap-3">
                     <Dialog
@@ -1561,6 +1742,44 @@ const AdminDashboard: React.FC = () => {
                   </Select>
                 </div>
               )}
+              {editingCompany && (
+                <div className="space-y-1 sm:col-span-2">
+                  <Label>Assigned corner</Label>
+                  <Select
+                    value={companyForm.cornerId === '' ? 'none' : companyForm.cornerId}
+                    onValueChange={(v) =>
+                      setCompanyForm((f) => ({ ...f, cornerId: v === 'none' ? '' : v }))
+                    }
+                    disabled={!companyForm.cityId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select corner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editingCompany.corner && (
+                        <SelectItem value={String(editingCompany.corner.id)}>
+                          {editingCompany.corner.name} (current)
+                        </SelectItem>
+                      )}
+                      {corners
+                        .filter((co) => {
+                          if (co.status !== 'AVAILABLE') return false;
+                          const cid = co.city?.id ?? co.cityId;
+                          return cid != null && cid === Number(companyForm.cityId);
+                        })
+                        .map((co) => (
+                          <SelectItem key={co.id} value={String(co.id)}>
+                            {co.name}
+                            {co.price != null ? ` — NAD ${co.price}` : ''}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Changing the corner updates the assignment and regenerates or sends an updated invoice.
+                  </p>
+                </div>
+              )}
               <div className="space-y-1 sm:col-span-2">
                 <Label>Address</Label>
                 <Input value={companyForm.address} onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))} />
@@ -1569,6 +1788,37 @@ const AdminDashboard: React.FC = () => {
                 <Label>{editingCompany ? 'New Password (optional)' : 'Password *'}</Label>
                 <Input type="password" value={companyForm.password} onChange={(e) => setCompanyForm((f) => ({ ...f, password: e.target.value }))} />
               </div>
+              <div className="sm:col-span-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompanyForm((f) => ({ ...f, showSecondaryUser: !f.showSecondaryUser }))}
+                >
+                  <Plus size={14} className="mr-1" />
+                  {companyForm.showSecondaryUser ? 'Hide second user' : 'Add second user (optional)'}
+                </Button>
+              </div>
+              {companyForm.showSecondaryUser && (
+                <>
+                  <div className="space-y-1">
+                    <Label>Second user email</Label>
+                    <Input
+                      type="email"
+                      value={companyForm.secondaryEmail}
+                      onChange={(e) => setCompanyForm((f) => ({ ...f, secondaryEmail: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>{editingCompany && companyForm.secondaryEmail ? 'Second user password (optional)' : 'Second user password'}</Label>
+                    <Input
+                      type="password"
+                      value={companyForm.secondaryPassword}
+                      onChange={(e) => setCompanyForm((f) => ({ ...f, secondaryPassword: e.target.value }))}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" type="button" onClick={() => setCompanyDialogOpen(false)}>
@@ -1587,10 +1837,49 @@ const AdminDashboard: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={cityEditDialogOpen} onOpenChange={setCityEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit City</DialogTitle></DialogHeader>
+            <div className="space-y-2">
+              <Label>City name</Label>
+              <Input value={editCityName} onChange={(e) => setEditCityName(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" type="button" onClick={() => setCityEditDialogOpen(false)}>Cancel</Button>
+              <Button className="gradient-gold text-white" type="button" onClick={updateCity} disabled={updatingCity || !editCityName.trim()}>
+                {updatingCity ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={cornerEditDialogOpen} onOpenChange={setCornerEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit Corner</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Corner name</Label>
+                <Input value={editCornerForm.name} onChange={(e) => setEditCornerForm((f) => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Price (NAD)</Label>
+                <Input type="number" value={editCornerForm.price} onChange={(e) => setEditCornerForm((f) => ({ ...f, price: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" type="button" onClick={() => setCornerEditDialogOpen(false)}>Cancel</Button>
+              <Button className="gradient-gold text-white" type="button" onClick={updateCorner} disabled={updatingCorner}>
+                {updatingCorner ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
           </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
+    </PortalThemeProvider>
   );
 };
 

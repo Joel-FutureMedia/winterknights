@@ -43,6 +43,7 @@ export interface Company {
   phone: string;
   address: string;
   user?: User;
+  secondaryUser?: Pick<User, 'id' | 'email' | 'enabled' | 'accountApproved'>;
   city: City;
   cityId?: number;
   corner: Corner | null;
